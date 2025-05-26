@@ -1,120 +1,132 @@
-<!-- index.html (Frontend for WebApp Snake Game) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Snake Game</title>
-  <style>
-    body {
-      margin: 0;
-      background-image: url('bg1.png'); /* Default background */
-      background-size: cover;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    canvas {
-      background-color: #000;
-      margin-top: 20px;
-    }
-    #score, #highscore {
-      color: white;
-      font-size: 20px;
-    }
-    #background-select {
-      margin-top: 10px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Змейка</title>
+    <style>
+        body {
+            margin: 0;
+            background-image: url('background1.jpg'); /* по умолчанию */
+            background-size: cover;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #000;
+        }
+        #controls button {
+            font-size: 30px;
+            margin: 5px;
+            padding: 10px 20px;
+        }
+        #score {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
-  <div id="score">Score: 0</div>
-  <div id="highscore">High Score: 0</div>
-  <canvas id="gameCanvas" width="400" height="400"></canvas>
 
-  <select id="background-select">
-    <option value="bg1.png">Фон 1</option>
-    <option value="bg2.png">Фон 2</option>
-    <option value="bg3.png">Фон 3</option>
-  </select>
+<div id="score">Счёт: 0</div>
+<canvas id="game" width="400" height="400"></canvas>
+<div id="controls">
+    <div><button onclick="simulateKey('ArrowUp')">⬆️</button></div>
+    <div>
+        <button onclick="simulateKey('ArrowLeft')">⬅️</button>
+        <button onclick="simulateKey('ArrowDown')">⬇️</button>
+        <button onclick="simulateKey('ArrowRight')">➡️</button>
+    </div>
+</div>
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    let box = 20;
-    let score = 0;
-    let highscore = localStorage.getItem("snakeHighscore") || 0;
-    document.getElementById("highscore").innerText = "High Score: " + highscore;
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const box = 20;
+let score = 0;
+let direction = "RIGHT";
+let snake = [{ x: 5 * box, y: 5 * box }];
+let food = {
+    x: Math.floor(Math.random() * 19 + 1) * box,
+    y: Math.floor(Math.random() * 19 + 1) * box,
+};
 
-    let snake = [{ x: 9 * box, y: 10 * box }];
-    let food = {
-      x: Math.floor(Math.random() * 19 + 1) * box,
-      y: Math.floor(Math.random() * 19 + 1) * box
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = i === 0 ? "green" : "lightgreen";
+        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+    }
+
+    ctx.fillStyle = "red";
+    ctx.fillRect(food.x, food.y, box, box);
+
+    let snakeX = snake[0].x;
+    let snakeY = snake[0].y;
+
+    if (direction === "LEFT") snakeX -= box;
+    if (direction === "RIGHT") snakeX += box;
+    if (direction === "UP") snakeY -= box;
+    if (direction === "DOWN") snakeY += box;
+
+    if (
+        snakeX < 0 || snakeX >= canvas.width ||
+        snakeY < 0 || snakeY >= canvas.height ||
+        collision(snakeX, snakeY, snake)
+    ) {
+        clearInterval(game);
+        alert("Игра окончена! Ваш счёт: " + score);
+        return;
+    }
+
+    if (snakeX === food.x && snakeY === food.y) {
+        score++;
+        document.getElementById("score").innerText = "Счёт: " + score;
+        food = {
+            x: Math.floor(Math.random() * 19 + 1) * box,
+            y: Math.floor(Math.random() * 19 + 1) * box,
+        };
+    } else {
+        snake.pop();
+    }
+
+    let newHead = {
+        x: snakeX,
+        y: snakeY,
     };
 
-    let d;
-    document.addEventListener("keydown", direction);
-    function direction(event) {
-      if (event.key === "ArrowLeft" && d !== "RIGHT") d = "LEFT";
-      else if (event.key === "ArrowUp" && d !== "DOWN") d = "UP";
-      else if (event.key === "ArrowRight" && d !== "LEFT") d = "RIGHT";
-      else if (event.key === "ArrowDown" && d !== "UP") d = "DOWN";
+    snake.unshift(newHead);
+}
+
+function collision(x, y, array) {
+    for (let i = 0; i < array.length; i++) {
+        if (x === array[i].x && y === array[i].y) return true;
     }
+    return false;
+}
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < snake.length; i++) {
-        ctx.fillStyle = i === 0 ? "green" : "white";
-        ctx.fillRect(snake[i].x, snake[i].y, box, box);
-      }
-      ctx.fillStyle = "red";
-      ctx.fillRect(food.x, food.y, box, box);
+document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
+    else if (e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
+    else if (e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
+    else if (e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
+});
 
-      let headX = snake[0].x;
-      let headY = snake[0].y;
+function simulateKey(key) {
+    const event = new KeyboardEvent("keydown", { key });
+    document.dispatchEvent(event);
+}
 
-      if (d === "LEFT") headX -= box;
-      if (d === "UP") headY -= box;
-      if (d === "RIGHT") headX += box;
-      if (d === "DOWN") headY += box;
+let game = setInterval(draw, 150);
+</script>
 
-      if (
-        headX < 0 || headX >= canvas.width ||
-        headY < 0 || headY >= canvas.height ||
-        collision(headX, headY, snake)
-      ) {
-        clearInterval(game);
-        alert("Игра окончена. Ваш счёт: " + score);
-        if (score > highscore) {
-          localStorage.setItem("snakeHighscore", score);
-        }
-        location.reload();
-      }
-
-      let newHead = { x: headX, y: headY };
-
-      if (headX === food.x && headY === food.y) {
-        score++;
-        document.getElementById("score").innerText = "Score: " + score;
-        food = {
-          x: Math.floor(Math.random() * 19 + 1) * box,
-          y: Math.floor(Math.random() * 19 + 1) * box
-        };
-      } else {
-        snake.pop();
-      }
-      snake.unshift(newHead);
-    }
-
-    function collision(x, y, array) {
-      return array.some(segment => segment.x === x && segment.y === y);
-    }
-
-    const game = setInterval(draw, 100);
-
-    document.getElementById("background-select").addEventListener("change", (e) => {
-      document.body.style.backgroundImage = `url('${e.target.value}')`;
-    });
-  </script>
 </body>
 </html>
